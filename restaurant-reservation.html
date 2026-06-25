@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식당 예약 관리 시스템</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f3;
+    --bg-tertiary: #eeede8;
+    --bg-info: #e6f1fb;
+    --bg-success: #eaf3de;
+    --bg-warning: #faeeda;
+    --bg-danger: #fcebeb;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b67;
+    --text-tertiary: #9a9993;
+    --text-info: #0c447c;
+    --text-success: #27500a;
+    --text-warning: #633806;
+    --text-danger: #791f1f;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1e1e1c;
+      --bg-secondary: #2a2a28;
+      --bg-tertiary: #323230;
+      --bg-info: #0c2340;
+      --bg-success: #142808;
+      --bg-warning: #2e1c04;
+      --bg-danger: #2a0e0e;
+      --text-primary: #f0efea;
+      --text-secondary: #a8a8a2;
+      --text-tertiary: #72726c;
+      --text-info: #85b7eb;
+      --text-success: #97c459;
+      --text-warning: #fac775;
+      --text-danger: #f09595;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.2);
+    }
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .shell {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+  }
+
+  /* Topbar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .topbar-title { font-size: 20px; font-weight: 600; }
+  .topbar-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Nav */
+  .nav {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-secondary);
+    padding: 3px;
+    border-radius: var(--radius-md);
+  }
+  .nav-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .nav-btn.active {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-weight: 500;
+    border: 0.5px solid var(--border);
+  }
+  .nav-btn i { font-size: 15px; }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+  }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .stat-val { font-size: 22px; font-weight: 600; }
+  .stat-change { font-size: 11px; margin-top: 3px; }
+  .up { color: #27500A; } .dn { color: #791F1F; }
+
+  /* Card */
+  .card {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+  }
+  .card-title { font-size: 13px; font-weight: 500; margin-bottom: 0.875rem; }
+
+  /* Two-col grid */
+  .two-col {
+    display: grid;
+    grid-template-columns: minmax(0,1.7fr) minmax(0,1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Buttons */
+  .btn {
+    padding: 7px 14px;
+    font-size: 13px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font);
+    transition: background 0.1s;
+  }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn-primary { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+  .btn-primary:hover { opacity: 0.85; background: var(--text-primary); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Badges */
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
+  .b-confirmed { background: #EAF3DE; color: #27500A; }
+  .b-pending { background: #FAEEDA; color: #633806; }
+  .b-cancelled { background: #FCEBEB; color: #791F1F; }
+  .b-seated { background: #E6F1FB; color: #0C447C; }
+  .b-completed { background: #E1F5EE; color: #085041; }
+
+  /* Row */
+  .res-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .res-row:last-child { border-bottom: none; }
+  .res-time { font-size: 13px; font-weight: 500; min-width: 44px; }
+  .res-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .res-info { flex: 1; min-width: 0; }
+  .res-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .res-meta { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .res-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  .icon-btn {
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font);
+  }
+  .icon-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+  /* Chips */
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 3px 10px; font-size: 11px; border-radius: 99px;
+    border: 0.5px solid var(--border); cursor: pointer;
+    color: var(--text-secondary); background: none; font-family: var(--font);
+  }
+  .chip.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+  /* Table grid */
+  .tbl-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  @media (max-width: 500px) { .tbl-grid { grid-template-columns: repeat(2, 1fr); } }
+  .tbl-cell {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px; text-align: center; cursor: pointer;
+  }
+  .tbl-cell.available { background: #EAF3DE; border-color: #C0DD97; }
+  .tbl-cell.reserved { background: #FAEEDA; border-color: #FAC775; }
+  .tbl-cell.occupied { background: #E6F1FB; border-color: #B5D4F4; }
+  .tbl-num { font-size: 13px; font-weight: 500; }
+  .tbl-cap { font-size: 10px; color: var(--text-secondary); }
+  .tbl-st { font-size: 10px; margin-top: 3px; }
+  .tbl-who { font-size: 10px; font-weight: 500; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Progress */
+  .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .progress-label { font-size: 12px; min-width: 64px; color: var(--text-secondary); }
+  .progress-bar-bg { flex: 1; height: 6px; background: var(--bg-secondary); border-radius: 99px; overflow: hidden; }
+  .progress-bar { height: 6px; border-radius: 99px; }
+  .progress-val { font-size: 12px; font-weight: 500; min-width: 40px; text-align: right; color: var(--text-secondary); }
+
+  /* Guest */
+  .guest-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer;
+  }
+  .guest-card:last-child { border-bottom: none; }
+  .guest-card:hover .guest-name { color: #185FA5; }
+  .guest-av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .guest-info { flex: 1; }
+  .guest-name { font-size: 13px; font-weight: 500; }
+  .guest-sub { font-size: 11px; color: var(--text-secondary); }
+  .stars { color: #BA7517; font-size: 12px; }
+  .vip-badge { background: #EEEDFE; color: #3C3489; font-size: 10px; padding: 1px 6px; border-radius: 99px; font-weight: 500; }
+
+  /* Timeline */
+  .tl-item { display: flex; gap: 10px; padding: 6px 0; }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .tl-text { font-size: 12px; color: var(--text-secondary); }
+  .tl-text strong { color: var(--text-primary); font-weight: 500; }
+  .tl-time { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* Search */
+  .search-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type=text], input[type=tel], input[type=number], input[type=time], input[type=date], select, textarea {
+    height: 36px;
+    padding: 0 10px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.12); }
+  select { cursor: pointer; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 0.5px solid var(--border);
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 1.25rem; }
+  .fg { margin-bottom: 0.875rem; }
+  .fg label { font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
+  .fg input, .fg select { width: 100%; }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: var(--text-primary); color: var(--bg-primary);
+    padding: 10px 16px; border-radius: var(--radius-md);
+    font-size: 13px; z-index: 300;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Pagination */
+  .pagination { display: flex; gap: 6px; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+
+  /* Section header */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem; flex-wrap: wrap; gap: 8px; }
+  .section-title { font-size: 13px; font-weight: 500; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">식당 예약 관리 시스템</div>
+      <div class="topbar-sub" id="date-label"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="nav">
+        <button class="nav-btn active" onclick="goPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> 대시보드</button>
+        <button class="nav-btn" onclick="goPage('reservations',this)"><i class="ti ti-calendar"></i> 예약</button>
+        <button class="nav-btn" onclick="goPage('tables',this)"><i class="ti ti-layout-grid"></i> 테이블</button>
+        <button class="nav-btn" onclick="goPage('guests',this)"><i class="ti ti-users"></i> 고객</button>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="ti ti-plus"></i> 새 예약</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="page-dashboard" class="page active">
+    <div class="stats" id="stats-row"></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">시간대별 예약 현황</div>
+        <div style="position:relative;height:200px;"><canvas id="hourChart" role="img" aria-label="시간대별 예약 수 막대 차트">시간대별 예약 분포</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">상태 분포</div>
+        <div id="custom-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+        <div style="position:relative;height:160px;"><canvas id="statusChart" role="img" aria-label="예약 상태 도넛 차트">예약 상태 분포</canvas></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">오늘 예약 (시간순)</div>
+        <div id="today-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">활동 로그</div>
+        <div id="activity-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reservations -->
+  <div id="page-reservations" class="page">
+    <div class="section-header">
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="이름 또는 연락처 검색..." oninput="renderResPage()" style="width:200px;">
+        <div class="filter-chips">
+          <button class="chip active" onclick="setChip(this,'all')">전체</button>
+          <button class="chip" onclick="setChip(this,'confirmed')">확정</button>
+          <button class="chip" onclick="setChip(this,'pending')">대기</button>
+          <button class="chip" onclick="setChip(this,'seated')">착석</button>
+          <button class="chip" onclick="setChip(this,'completed')">완료</button>
+          <button class="chip" onclick="setChip(this,'cancelled')">취소</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <select id="sort-select" onchange="renderResPage()">
+          <option value="time">시간순</option>
+          <option value="name">이름순</option>
+          <option value="pax">인원순</option>
+        </select>
+        <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> CSV</button>
+      </div>
+    </div>
+    <div id="res-full-list"></div>
+    <div class="pagination" id="res-pagination"></div>
+  </div>
+
+  <!-- Tables -->
+  <div id="page-tables" class="page">
+    <div class="section-header">
+      <div class="section-title">테이블 현황</div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--text-secondary);">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#C0DD97;display:inline-block;"></span>빈 테이블</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#FAC775;display:inline-block;"></span>예약됨</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#B5D4F4;display:inline-block;"></span>착석 중</span>
+      </div>
+    </div>
+    <div class="tbl-grid" id="table-grid"></div>
+    <div style="margin-top:1rem;">
+      <div class="card">
+        <div class="card-title">테이블 이용률</div>
+        <div id="table-util"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guests -->
+  <div id="page-guests" class="page">
+    <div class="section-header">
+      <div class="section-title">고객 DB</div>
+      <input type="text" id="guest-search" placeholder="고객 검색..." oninput="renderGuests()" style="width:200px;">
+    </div>
+    <div class="two-col">
+      <div id="guest-list-wrap"></div>
+      <div class="card" id="guest-detail-panel">
+        <div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:2rem 0;">고객을 선택하세요</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .shell -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">새 예약 추가</div>
+    <div class="fg"><label>예약자 이름</label><input type="text" id="f-name" placeholder="홍길동"></div>
+    <div class="frow">
+      <div class="fg"><label>예약 시간</label><input type="time" id="f-time" value="12:00"></div>
+      <div class="fg"><label>날짜</label><input type="date" id="f-date"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>인원</label><input type="number" id="f-pax" min="1" max="20" value="2"></div>
+      <div class="fg"><label>테이블</label>
+        <select id="f-table">
+          <option value="1">1번 (2인)</option><option value="2">2번 (2인)</option>
+          <option value="3">3번 (4인)</option><option value="4">4번 (4인)</option>
+          <option value="5">5번 (6인)</option><option value="6">6번 (6인)</option>
+          <option value="7">7번 (8인)</option><option value="8">8번 (8인)</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>연락처</label><input type="tel" id="f-phone" placeholder="010-0000-0000"></div>
+      <div class="fg"><label>요청 사항</label><input type="text" id="f-note" placeholder="알레르기 등"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="addReservation()"><i class="ti ti-check"></i> 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const TABLE_CAP={1:2,2:2,3:4,4:4,5:6,6:6,7:8,8:8};
+const AVATARS=['#E6F1FB','#EAF3DE','#FAEEDA','#EEEDFE','#FAECE7','#E1F5EE'];
+const AVATAR_TX=['#0C447C','#27500A','#633806','#3C3489','#712B13','#085041'];
+let chipFilter='all', resPage=1;
+const PER_PAGE=7;
+
+let reservations=[
+  {id:1,name:'김민준',time:'11:30',pax:2,table:1,phone:'010-1234-5678',note:'',status:'confirmed',visits:5,spend:320000},
+  {id:2,name:'이서연',time:'12:00',pax:4,table:3,phone:'010-2345-6789',note:'생일 케이크',status:'confirmed',visits:2,spend:180000},
+  {id:3,name:'박지호',time:'12:30',pax:2,table:2,phone:'010-3456-7890',note:'',status:'seated',visits:8,spend:540000},
+  {id:4,name:'최유나',time:'13:00',pax:6,table:5,phone:'010-4567-8901',note:'채식 메뉴',status:'pending',visits:1,spend:75000},
+  {id:5,name:'정현우',time:'13:30',pax:3,table:4,phone:'010-5678-9012',note:'',status:'confirmed',visits:3,spend:210000},
+  {id:6,name:'윤서영',time:'18:00',pax:8,table:7,phone:'010-6789-0123',note:'단체 모임',status:'confirmed',visits:1,spend:90000},
+  {id:7,name:'강도현',time:'19:00',pax:4,table:3,phone:'010-7890-1234',note:'',status:'pending',visits:4,spend:290000},
+  {id:8,name:'조하은',time:'19:30',pax:2,table:2,phone:'010-8901-2345',note:'',status:'cancelled',visits:6,spend:410000},
+  {id:9,name:'한지민',time:'20:00',pax:5,table:6,phone:'010-9012-3456',note:'와인 추천',status:'confirmed',visits:2,spend:160000},
+  {id:10,name:'오준혁',time:'20:30',pax:2,table:1,phone:'010-0123-4567',note:'',status:'completed',visits:12,spend:890000},
+];
+let nextId=11;
+let activityLog=[
+  {msg:'<strong>박지호</strong>님 착석 완료',time:'12:32',dot:'#378ADD'},
+  {msg:'<strong>조하은</strong>님 예약 취소됨',time:'11:45',dot:'#E24B4A'},
+  {msg:'<strong>김민준</strong>님 예약 확정',time:'11:10',dot:'#639922'},
+];
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+function avatar(name,i){
+  const c=i%6;
+  return `<div class="res-avatar" style="background:${AVATARS[c]};color:${AVATAR_TX[c]};">${name[0]}</div>`;
+}
+function statusLabel(s){return{confirmed:'확정',pending:'대기',seated:'착석',cancelled:'취소',completed:'완료'}[s]||s;}
+function sBadge(s){return `<span class="badge b-${s}">${statusLabel(s)}</span>`;}
+function pushLog(msg,dot='#378ADD'){
+  const now=new Date();
+  activityLog.unshift({msg,time:`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,dot});
+  if(activityLog.length>10)activityLog.pop();
+  renderLog();
+}
+
+function renderStats(){
+  const active=reservations.filter(r=>r.status!=='cancelled');
+  const total=active.length;
+  const confirmed=reservations.filter(r=>r.status==='confirmed').length;
+  const pending=reservations.filter(r=>r.status==='pending').length;
+  const pax=active.reduce((a,b)=>a+b.pax,0);
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat"><div class="stat-label">총 예약</div><div class="stat-val">${total}</div><div class="stat-change up"><i class="ti ti-trending-up" style="font-size:11px"></i> 전일 대비 +2</div></div>
+    <div class="stat"><div class="stat-label">확정</div><div class="stat-val">${confirmed}</div><div class="stat-change" style="color:var(--text-secondary);">착석 ${reservations.filter(r=>r.status==='seated').length}명 포함</div></div>
+    <div class="stat"><div class="stat-label">대기 중</div><div class="stat-val">${pending}</div><div class="stat-change ${pending>0?'dn':'up'}">${pending>0?'확인 필요':'없음'}</div></div>
+    <div class="stat"><div class="stat-label">총 방문 인원</div><div class="stat-val">${pax}명</div><div class="stat-change up"><i class="ti ti-trending-up" style="font-size:11px"></i> 객단가 ↑</div></div>`;
+}
+
+function renderTodayList(){
+  const sorted=[...reservations].filter(r=>r.status!=='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+  document.getElementById('today-list').innerHTML=sorted.slice(0,6).map((r,i)=>`
+    <div class="res-row">
+      <span class="res-time">${r.time}</span>
+      ${avatar(r.name,i)}
+      <div class="res-info">
+        <div class="res-name">${r.name}</div>
+        <div class="res-meta">${r.pax}명 · ${r.table}번 테이블${r.note?' · '+r.note:''}</div>
+      </div>
+      ${sBadge(r.status)}
+      <div class="res-actions">
+        ${r.status==='pending'?`<button class="icon-btn" title="확정" onclick="changeStatus(${r.id},'confirmed')"><i class="ti ti-check"></i></button>`:''}
+        ${r.status==='confirmed'?`<button class="icon-btn" title="착석" onclick="changeStatus(${r.id},'seated')"><i class="ti ti-armchair"></i></button>`:''}
+        ${r.status==='seated'?`<button class="icon-btn" title="완료" onclick="changeStatus(${r.id},'completed')"><i class="ti ti-circle-check"></i></button>`:''}
+      </div>
+    </div>`).join('');}
+
+function renderLog(){
+  document.getElementById('activity-log').innerHTML=activityLog.map(l=>`
+    <div class="tl-item">
+      <div class="tl-dot" style="background:${l.dot};"></div>
+      <div><div class="tl-text">${l.msg}</div><div class="tl-time">${l.time}</div></div>
+    </div>`).join('');}
+
+let hourChart=null,statusChart=null;
+function renderCharts(){
+  const hours=['11','12','13','14','18','19','20'];
+  const counts=hours.map(h=>reservations.filter(r=>r.time.startsWith(h)&&r.status!=='cancelled').length);
+  if(hourChart)hourChart.destroy();
+  hourChart=new Chart(document.getElementById('hourChart'),{
+    type:'bar',
+    data:{labels:hours.map(h=>h+':00'),datasets:[{label:'예약',data:counts,backgroundColor:'#B5D4F4',borderColor:'#378ADD',borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(128,128,128,0.1)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}
+  });
+  const counts2=[
+    reservations.filter(r=>r.status==='confirmed').length,
+    reservations.filter(r=>r.status==='pending').length,
+    reservations.filter(r=>r.status==='seated').length,
+    reservations.filter(r=>r.status==='completed').length,
+    reservations.filter(r=>r.status==='cancelled').length,
+  ];
+  const labels2=['확정','대기','착석','완료','취소'];
+  const colors=['#97C459','#EF9F27','#378ADD','#1D9E75','#F09595'];
+  document.getElementById('custom-legend').innerHTML=labels2.map((l,i)=>`
+    <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);">
+      <span style="width:8px;height:8px;border-radius:2px;background:${colors[i]};display:inline-block;"></span>${l} ${counts2[i]}
+    </span>`).join('');
+  if(statusChart)statusChart.destroy();
+  statusChart=new Chart(document.getElementById('statusChart'),{
+    type:'doughnut',
+    data:{labels:labels2,datasets:[{data:counts2,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}
+  });}
+
+function renderResPage(){
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const sort=document.getElementById('sort-select').value;
+  let list=reservations.filter(r=>{
+    if(chipFilter!=='all'&&r.status!==chipFilter)return false;
+    if(q&&!r.name.toLowerCase().includes(q)&&!r.phone.includes(q))return false;
+    return true;
+  });
+  if(sort==='time')list.sort((a,b)=>a.time.localeCompare(b.time));
+  else if(sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  else list.sort((a,b)=>b.pax-a.pax);
+  const pages=Math.ceil(list.length/PER_PAGE)||1;
+  if(resPage>pages)resPage=1;
+  const slice=list.slice((resPage-1)*PER_PAGE,resPage*PER_PAGE);
+  document.getElementById('res-full-list').innerHTML=`
+    <div class="card" style="padding:0.75rem 1.25rem;">
+    ${slice.length===0?'<div style="padding:2rem;text-align:center;color:var(--text-secondary);">예약이 없습니다.</div>':''}
+    ${slice.map((r,i)=>`
+      <div class="res-row">
+        <span class="res-time">${r.time}</span>
+        ${avatar(r.name,i)}
+        <div class="res-info">
+          <div class="res-name">${r.name} ${r.visits>=5?'<span class="vip-badge">VIP</span>':''}</div>
+          <div class="res-meta">${r.pax}명 · ${r.table}번 · ${r.phone}${r.note?' · '+r.note:''}</div>
+        </div>
+        ${sBadge(r.status)}
+        <div class="res-actions">
+          ${r.status==='pending'?`<button class="icon-btn" title="확정" onclick="changeStatus(${r.id},'confirmed')"><i class="ti ti-check"></i></button>`:''}
+          ${r.status==='confirmed'?`<button class="icon-btn" title="착석" onclick="changeStatus(${r.id},'seated')"><i class="ti ti-armchair"></i></button>`:''}
+          ${r.status==='seated'?`<button class="icon-btn" title="완료" onclick="changeStatus(${r.id},'completed')"><i class="ti ti-circle-check"></i></button>`:''}
+          ${r.status!=='cancelled'&&r.status!=='completed'?`<button class="icon-btn" title="취소" onclick="changeStatus(${r.id},'cancelled')"><i class="ti ti-x"></i></button>`:''}
+          <button class="icon-btn" title="삭제" onclick="delRes(${r.id})"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  document.getElementById('res-pagination').innerHTML=Array.from({length:pages},(_,i)=>`
+    <button class="btn btn-sm ${i+1===resPage?'btn-primary':''}" onclick="resPage=${i+1};renderResPage();">${i+1}</button>`).join('');}
+
+function renderTables(){
+  const seated=new Set(reservations.filter(r=>r.status==='seated').map(r=>r.table));
+  const reserved=new Set(reservations.filter(r=>r.status==='confirmed'||r.status==='pending').map(r=>r.table));
+  document.getElementById('table-grid').innerHTML=Array.from({length:8},(_,i)=>{
+    const t=i+1,isSeat=seated.has(t),isRes=!isSeat&&reserved.has(t);
+    const cls=isSeat?'occupied':isRes?'reserved':'available';
+    const label=isSeat?'착석 중':isRes?'예약됨':'빈 테이블';
+    const r=reservations.find(x=>x.table===t&&(x.status==='seated'||x.status==='confirmed'||x.status==='pending'));
+    return`<div class="tbl-cell ${cls}">
+      <div class="tbl-num">${t}번</div>
+      <div class="tbl-cap">${TABLE_CAP[t]}인석</div>
+      <div class="tbl-st">${label}</div>
+      ${r?`<div class="tbl-who">${r.name} (${r.pax}명)</div>`:''}
+    </div>`;}).join('');
+  const used=Array.from({length:8},(_,i)=>seated.has(i+1)||reserved.has(i+1));
+  const util=Math.round(used.filter(Boolean).length/8*100);
+  document.getElementById('table-util').innerHTML=`
+    <div class="progress-row"><span class="progress-label">전체 이용률</span><div class="progress-bar-bg"><div class="progress-bar" style="width:${util}%;background:#378ADD;"></div></div><span class="progress-val">${util}%</span></div>
+    ${Array.from({length:8},(_,i)=>{
+      const t=i+1,isSeat=seated.has(t),isRes=reserved.has(t);
+      const pct=isSeat?100:isRes?60:0;
+      const color=isSeat?'#378ADD':isRes?'#EF9F27':'#C0DD97';
+      const label=isSeat?'착석':isRes?'예약':'빈 자리';
+      return`<div class="progress-row"><span class="progress-label">${t}번 테이블</span><div class="progress-bar-bg"><div class="progress-bar" style="width:${pct}%;background:${color};"></div></div><span class="progress-val">${label}</span></div>`;
+    }).join('')}`;}
+
+function renderGuests(){
+  const q=(document.getElementById('guest-search').value||'').toLowerCase();
+  const guests=[...new Map(reservations.map(r=>[r.name,r])).values()]
+    .filter(r=>!q||r.name.toLowerCase().includes(q)||r.phone.includes(q))
+    .sort((a,b)=>b.visits-a.visits);
+  document.getElementById('guest-list-wrap').innerHTML=`<div class="card">`+
+    (guests.length===0?'<div style="padding:2rem;text-align:center;color:var(--text-secondary);">고객이 없습니다.</div>':'')+
+    guests.map((r,i)=>`
+    <div class="guest-card" onclick="showGuestDetail('${r.name}')">
+      ${avatar(r.name,i)}
+      <div class="guest-info">
+        <div class="guest-name">${r.name} ${r.visits>=5?'<span class="vip-badge">VIP</span>':''}</div>
+        <div class="guest-sub">${r.phone} · 방문 ${r.visits}회</div>
+      </div>
+      <div class="stars">${'★'.repeat(Math.min(5,Math.floor(r.visits/2)+1))}</div>
+    </div>`).join('')+`</div>`;}
+
+function showGuestDetail(name){
+  const r=reservations.find(x=>x.name===name);
+  if(!r)return;
+  const myRes=reservations.filter(x=>x.name===name);
+  document.getElementById('guest-detail-panel').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+      ${avatar(r.name,0)}
+      <div>
+        <div style="font-size:15px;font-weight:600;">${r.name} ${r.visits>=5?'<span class="vip-badge">VIP</span>':''}</div>
+        <div style="font-size:12px;color:var(--text-secondary);">${r.phone}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;">
+      <div class="stat"><div class="stat-label">총 방문</div><div style="font-size:18px;font-weight:600;">${r.visits}회</div></div>
+      <div class="stat"><div class="stat-label">누적 소비</div><div style="font-size:18px;font-weight:600;">${(r.spend/10000).toFixed(0)}만원</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:var(--text-secondary);">예약 이력</div>
+    ${myRes.map(x=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:0.5px solid var(--border);">
+      <span>${x.time} · ${x.pax}명 · ${x.table}번 테이블</span>${sBadge(x.status)}
+    </div>`).join('')}`;}
+
+function changeStatus(id,status){
+  const r=reservations.find(x=>x.id===id);
+  if(!r)return;
+  r.status=status;
+  pushLog(`<strong>${r.name}</strong>님 상태 → ${statusLabel(status)}`,
+    status==='confirmed'?'#639922':status==='seated'?'#378ADD':status==='cancelled'?'#E24B4A':'#1D9E75');
+  showToast(`${r.name}님 → ${statusLabel(status)}`);
+  renderAll();
+}
+function delRes(id){
+  const r=reservations.find(x=>x.id===id);
+  if(!confirm(`${r?r.name:'이 예약'}을(를) 삭제할까요?`))return;
+  if(r)pushLog(`<strong>${r.name}</strong>님 예약 삭제됨`,'#888780');
+  reservations=reservations.filter(x=>x.id!==id);
+  showToast('예약이 삭제됐습니다.');
+  renderAll();
+}
+function setChip(el,val){
+  chipFilter=val;resPage=1;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');renderResPage();
+}
+function openModal(){
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function addReservation(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('이름을 입력하세요.');return;}
+  const r={
+    id:nextId++,name,
+    time:document.getElementById('f-time').value,
+    pax:parseInt(document.getElementById('f-pax').value)||2,
+    table:parseInt(document.getElementById('f-table').value),
+    phone:document.getElementById('f-phone').value.trim(),
+    note:document.getElementById('f-note').value.trim(),
+    status:'pending',visits:1,spend:0
+  };
+  reservations.push(r);
+  pushLog(`<strong>${name}</strong>님 새 예약 등록됨`,'#639922');
+  showToast(`${name}님 예약이 등록됐습니다.`);
+  closeModal();
+  ['f-name','f-phone','f-note'].forEach(id=>document.getElementById(id).value='');
+  renderAll();
+}
+
+function exportCSV(){
+  const BOM='\uFEFF';
+  const h='이름,시간,인원,테이블,연락처,상태,메모\n';
+  const rows=reservations.map(r=>`${r.name},${r.time},${r.pax},${r.table}번,${r.phone},${statusLabel(r.status)},${r.note}`).join('\n');
+  const blob=new Blob([BOM+h+rows],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`예약_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('CSV 파일이 저장됐습니다.');
+}
+
+function goPage(p,btn){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='reservations')renderResPage();
+  if(p==='tables')renderTables();
+  if(p==='guests')renderGuests();
+}
+
+function renderAll(){
+  renderStats();renderTodayList();renderLog();renderCharts();
+  renderResPage();renderTables();renderGuests();
+}
+
+document.getElementById('date-label').textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+renderAll();
+</script>
+</body>
+</html>
